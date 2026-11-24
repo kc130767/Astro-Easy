@@ -1,5 +1,203 @@
-const CACHE='astro-easy-v03';
-const FILES=['./','./index.html','./style.css','./app.js','./manifest.json','./icon.svg','./icon-192.png','./icon-512.png'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES))));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
-self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(caches.match(e.request).then(cached=>cached||fetch(e.request).then(response=>{const copy=response.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return response;})));});
+
+
+<!DOCTYPE html>
+
+<html lang="ja">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<title>Astro Easy</title>
+
+<style>
+
+body {
+
+  background: #080f20;
+
+  color: white;
+
+  font-family: sans-serif;
+
+  text-align: center;
+
+  padding: 20px;
+
+}
+
+h1 { color: #8bcaff; }
+
+button, input {
+
+  padding: 14px;
+
+  margin: 6px;
+
+  border: 0;
+
+  border-radius: 10px;
+
+  font-size: 16px;
+
+}
+
+button {
+
+  background: #2463bb;
+
+  color: white;
+
+}
+
+canvas {
+
+  max-width: 100%;
+
+  height: auto;
+
+  margin-top: 20px;
+
+  border-radius: 8px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>✦ Astro Easy</h1>
+
+<p>天体写真を、もっと美しく。</p>
+
+<p>Version 0.1</p>
+
+<input type="file" id="file"
+
+accept="image/jpeg,image/png,image/webp">
+
+<div>
+
+<button onclick="processImage()">自動処理</button>
+
+<button onclick="restore()">元の画像</button>
+
+<button onclick="save()">画像を保存</button>
+
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+
+const canvas = document.getElementById("canvas");
+
+const ctx = canvas.getContext("2d");
+
+let original = null;
+
+document.getElementById("file").onchange = e => {
+
+  const file = e.target.files[0];
+
+  if (!file) return;
+
+  const img = new Image();
+
+  const url = URL.createObjectURL(file);
+
+  img.onload = () => {
+
+    const scale = Math.min(1, 2400 / Math.max(img.width, img.height));
+
+    canvas.width = Math.round(img.width * scale);
+
+    canvas.height = Math.round(img.height * scale);
+
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    original = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    URL.revokeObjectURL(url);
+
+  };
+
+  img.onerror = () => {
+
+    URL.revokeObjectURL(url);
+
+    alert("画像を読み込めませんでした");
+
+  };
+
+  img.src = url;
+
+};
+
+function processImage() {
+
+  if (!original) {
+
+    alert("画像を選択してください");
+
+    return;
+
+  }
+
+  const data = new ImageData(
+
+    new Uint8ClampedArray(original.data),
+
+    original.width,
+
+    original.height
+
+  );
+
+  for (let i = 0; i < data.data.length; i += 4) {
+
+    for (let c = 0; c < 3; c++) {
+
+      let v = data.data[i + c] / 255;
+
+      data.data[i + c] = 255 * Math.pow(v, 0.65);
+
+    }
+
+  }
+
+  ctx.putImageData(data, 0, 0);
+
+}
+
+function restore() {
+
+  if (original) ctx.putImageData(original, 0, 0);
+
+}
+
+function save() {
+
+  if (!original) return;
+
+  const a = document.createElement("a");
+
+  a.download = "Astro-Easy.png";
+
+  a.href = canvas.toDataURL("image/png");
+
+  a.click();
+
+}
+
+</script>
+
+</body>
+
+</html>
